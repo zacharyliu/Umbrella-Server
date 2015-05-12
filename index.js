@@ -75,7 +75,7 @@ ColorArray.prototype.toData = function (duration) {
     intToHex((duration & 0x00ff0000) >> 16),
     intToHex((duration & 0xff000000) >> 24)];
   var dataArray = intArray.concat(this.toFlatArray());
-  console.log(dataArray.join(" "));
+  console.log("[" + dataArray.join(",") + "]");
   return cobs.encode(new Buffer(dataArray));
 }
 
@@ -128,16 +128,31 @@ var patterns = {
       [200, new ColorArray(), function () {return 1000 + 2000*Math.random()}],
     ]
   },
-  "sunny": [[1000, new ColorArray().setAll(COLOR_SUNLIGHT), 1000], [1000, new ColorArray().setAll([0x00, 0x00, 0x00]), 1000]],
-  "sunset": [
-    [200, new ColorArray().setAll(COLOR_SUNLIGHT), 0],
-    [200, new ColorArray().setAll(Color().rgb([0xFA, 0xD6, 0xA5]).darken(0.2).rgbArray()), 0], // https://en.wikipedia.org/wiki/Sunset_%28color%29
-    [200, new ColorArray()
-      .setAll(   Color().rgb([0xFA, 0xD6, 0xA5]).darken(0.95).rgbArray())
-      .setCol(0, Color().rgb([0xFA, 0xD6, 0xA5]).darken(0.3).saturate(0.5).rgbArray())
-    , 0],
-    [200, new ColorArray().setAt(0, 0, Color().rgb([0xFA, 0xD6, 0xA5]).darken(0.3).saturate(0.5).rgbArray()), 0]
-  ]
+  "sunny": [[1000, new ColorArray().setAll(COLOR_SUNLIGHT), 1000], [1000, new ColorArray().setCol(0, [0xFF, 0x00, 0x00]), 1000]],
+  "sunset": function() {
+    var sunsetDarkColor = Color().rgb([0xFA, 0xD6, 0xA5]).darken(0.7).saturate(0.3).rgbArray();
+    var array = [
+      [300, new ColorArray().setAll(COLOR_SUNLIGHT), 700],
+      [1000, new ColorArray().setAll(Color().rgb([0xFA, 0xD6, 0xA5]).darken(0.6).rgbArray()), 500], // https://en.wikipedia.org/wiki/Sunset_%28color%29
+      [1000, new ColorArray()
+        .setAll(   Color().rgb([0xFA, 0xD6, 0xA5]).darken(0.95).rgbArray())
+        .setCol(0, sunsetDarkColor)
+      , 500]
+    ];
+
+    for (var i = 4; i > 0; i--) {
+      var ca = new ColorArray();
+      ca.setCol(0, sunsetDarkColor);
+      for (var j = 4; j >= i; j--) {
+        ca.setAt(0, j, [0x00, 0x00, 0x00]);
+      }
+      array.push([300, ca, 250]);
+    }
+
+    array.push([0, new ColorArray(), 1000]);
+    
+    return array;
+  }
 };
 
 function getData(duration, colors) {
@@ -168,7 +183,7 @@ function loop(err) {
   if (err) console.log(err);
   // var color = randColor();
 
-  array = patterns["sunny"];
+  array = patterns["sunset"];
   if (typeof array === 'function') array = array();
 
   var delay = 0;
