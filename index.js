@@ -226,7 +226,7 @@ function loop(err) {
   if (err) console.log(err);
   // var color = randColor();
 
-  array = patterns["lightning"];
+  array = patterns["sunset"];
   if (typeof array === 'function') array = array();
 
   loopRun(array, 0, function () {
