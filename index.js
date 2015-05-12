@@ -1,7 +1,7 @@
 var DEBUG = false;
 
-var PORT = "/dev/cu.usbserial-A5025XYY";
-// var PORT = "/dev/cu.HC-06-DevB";
+// var PORT = "/dev/cu.usbserial-A5025XYY";
+var PORT = "/dev/cu.HC-06-DevB";
 
 if (!DEBUG) {
   var SerialPort = require("serialport").SerialPort
@@ -128,7 +128,7 @@ var patterns = {
       [200, new ColorArray(), function () {return 1000 + 2000*Math.random()}],
     ]
   },
-  "sunny": [[1000, new ColorArray().setAll(COLOR_SUNLIGHT), 1000], [1000, new ColorArray().setCol(0, [0xFF, 0x00, 0x00]), 1000]],
+  "sunny": [[1000, new ColorArray().setAll(COLOR_SUNLIGHT), 1000]],
   "sunset": function() {
     var sunsetDarkColor = Color().rgb([0xFA, 0xD6, 0xA5]).darken(0.7).saturate(0.3).rgbArray();
     var array = [
@@ -152,7 +152,10 @@ var patterns = {
     array.push([0, new ColorArray(), 1000]);
     
     return array;
-  }
+  },
+  "cloudy": function() {
+
+  },
 };
 
 function getData(duration, colors) {
@@ -176,54 +179,62 @@ function colorsToString(colors) {
   return allStrings.join(" ");
 };
 
-var toggle = true;
+function loopRun(array, i, done) {
+  if (i >= array.length) 
+    return done();
+
+  var duration = array[i][0];
+  if (typeof duration === 'function') duration = duration();
+
+  var colors = array[i][1];
+  if (typeof colors === 'function') colors = colors();
+
+  var hold = array[i][2];
+  if (typeof hold === 'function') hold = hold();
+
+  var next = function () {
+    var delay = duration + hold;
+    setTimeout(function () {
+      loopRun(array, i + 1, done);
+    }, delay);
+  };
+
+  if (!DEBUG) {
+    var data = colors.toData(duration);
+    serialPort.write(data);
+    serialPort.write([0x00]);
+
+    // serialPort.drain(function () {
+    //   next();
+    // });
+
+    next();
+  } else {
+    console.log("Delay:    " + thisDelay);
+    console.log("Duration: " + duration);
+    console.log("Colors:   " + colors.toString());
+    console.log("Hold:     " + hold);
+    console.log();
+
+    next();
+  }
+}
+
 function loop(err) {
   var duration = 500;
 
   if (err) console.log(err);
   // var color = randColor();
 
-  array = patterns["sunset"];
+  array = patterns["lightning"];
   if (typeof array === 'function') array = array();
 
-  var delay = 0;
-  for (var i = 0; i < array.length; i++) {
-    (function () {
-      var duration = array[i][0];
-      if (typeof duration === 'function') duration = duration();
-
-      var colors = array[i][1];
-      if (typeof colors === 'function') colors = colors();
-
-      var hold = array[i][2];
-      if (typeof hold === 'function') hold = hold();
-
-      var thisDelay = delay;
-
-      setTimeout(function () {
-        if (!DEBUG) {
-          var data = colors.toData(duration);
-          serialPort.write(data);
-          serialPort.write([0x00]);
-        } else {
-          console.log("Delay:    " + thisDelay);
-          console.log("Duration: " + duration);
-          console.log("Colors:   " + colors.toString());
-          console.log("Hold:     " + hold);
-          console.log();
-        }
-      }, thisDelay);
-
-      delay += duration + hold;
-    })();
-  }
-
-  setTimeout(function() {
+  loopRun(array, 0, function () {
     if (!DEBUG)
       serialPort.drain(loop);
     else
       loop();
-  }, delay);
+  });
 }
 
 if (!DEBUG) {
