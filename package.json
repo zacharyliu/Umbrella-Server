@@ -1,0 +1,13 @@
+{
+  "name": "umbrella-server",
+  "main": "index.js",
+  "author": "Zachary Liu",
+  "license": "MIT",
+  "dependencies": {
+    "chroma-js": "^0.7.2",
+    "cobs": "^0.2.1",
+    "color": "^0.8.0",
+    "serialport": "^1.7.1",
+    "tween.js": "^0.14.0"
+  }
+}
