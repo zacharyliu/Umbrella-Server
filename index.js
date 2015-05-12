@@ -154,7 +154,39 @@ var patterns = {
     return array;
   },
   "cloudy": function() {
+    var threshold = 0xE0;
 
+    var start = {
+      row: Math.random() * LED_COUNT_NUM_ROWS,
+      col: Math.random() * LED_COUNT_NUM_COLS
+    }
+    var end = {
+      row: Math.random() * LED_COUNT_NUM_ROWS,
+      col: Math.random() * LED_COUNT_NUM_COLS
+    }
+
+    var getCloudRow = function (col) {
+      return start.row + (end.row - start.row) / (end.col - start.col) * (col - start.col)
+    }
+
+    var arrays = [];
+
+    for (var cloudCol = 0; cloudCol < LED_COUNT_NUM_COLS; cloudCol += 0.3) {
+      var cloudRow = getCloudRow(cloudCol);
+      var ca = new ColorArray();
+      for (var col = 0; col < LED_COUNT_NUM_COLS; col++) {
+        for (var row = 0; row < LED_COUNT_NUM_ROWS; row++) {
+          var distance = Math.sqrt(Math.pow(row - cloudRow, 2) + Math.pow(col - cloudCol, 2));
+          var value = intToHex(Math.min(threshold, Math.pow(distance, 2) * 10));
+          ca.setAt(col, row, [value, value, value]);
+        }
+      }
+      arrays.push([300, ca, 300]);
+    }
+
+    arrays.push([500, new ColorArray().setAll(Color().rgb([threshold, threshold, threshold]).darken(0.3).rgbArray()), 1000 + Math.random() * 2000]);
+
+    return arrays;
   },
 };
 
@@ -210,7 +242,6 @@ function loopRun(array, i, done) {
 
     next();
   } else {
-    console.log("Delay:    " + thisDelay);
     console.log("Duration: " + duration);
     console.log("Colors:   " + colors.toString());
     console.log("Hold:     " + hold);
@@ -226,7 +257,7 @@ function loop(err) {
   if (err) console.log(err);
   // var color = randColor();
 
-  array = patterns["sunset"];
+  array = patterns["cloudy"];
   if (typeof array === 'function') array = array();
 
   loopRun(array, 0, function () {
